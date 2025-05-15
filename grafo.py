@@ -1,28 +1,27 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import numpy as np
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-# algoritmo
+# --------------------- MODELO -----------------------
 
 class Aresta:
     def __init__(self, destino, peso):
-        self.destino = destino  # tipo: Vertice
+        self.destino = destino
         self.peso = peso
 
 class Vertice:
     def __init__(self, nome):
         self.nome = nome
-        self.arestas = []  # Lista de Aresta
+        self.arestas = []
 
     def adicionar_aresta(self, destino, peso):
         self.arestas.append(Aresta(destino, peso))
 
 class Grafo:
     def __init__(self):
-        self.vertices = {}  # nome -> Vertice
+        self.vertices = {}
         self.posicoes = {}
 
     def adicionar_vertice(self, nome):
@@ -64,151 +63,193 @@ class Grafo:
             caminho.insert(0, atual)
             atual = anteriores[atual]
         return caminho
-    # interface(mt grande)
+
+# --------------------- INTERFACE -----------------------
 
 class GrafoApp:
-            def __init__(self, root):
-                self.root = root
-                self.root.title("Editor de Grafos - Dijkstra")
-                self.grafo = Grafo()
-                self.fig, self.ax = plt.subplots(figsize=(6, 6))
-                self.canvas = FigureCanvasTkAgg(self.fig, master=root)
-                self.canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
-                self.frame = tk.Frame(root)
-                self.frame.pack(side=tk.RIGHT, fill=tk.Y)
-                self.vertice_selecionado = None
-                self.vertice_inicial = None
-                self.vertice_destino = None
-                self.distancias = {}
-                self.anteriores = {}
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Editor de Grafos - Dijkstra")
+        self.grafo = Grafo()
+        self.fig, self.ax = plt.subplots(figsize=(6, 6))
+        self.canvas = FigureCanvasTkAgg(self.fig, master=root)
+        self.canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        self.frame = tk.Frame(root)
+        self.frame.pack(side=tk.RIGHT, fill=tk.Y)
+        self.vertice_selecionado = None
+        self.vertice_inicial = None
+        self.vertice_destino = None
+        self.distancias = {}
+        self.anteriores = {}
 
-                tk.Button(self.frame, text="Adicionar Vértice", command=self.adicionar_vertice).pack(pady=5)
-                tk.Button(self.frame, text="Conectar Vértices", command=self.conectar_vertices).pack(pady=5)
-                tk.Button(self.frame, text="Escolher Vértice Inicial", command=self.escolher_vertice_inicial).pack(pady=5)
-                tk.Button(self.frame, text="Executar Dijkstra", command=self.executar_dijkstra).pack(pady=5)
-                tk.Button(self.frame, text="Mostrar Caminho", command=self.mostrar_caminho).pack(pady=5)
-                self.lista_distancias = tk.Listbox(self.frame, width=40)
-                self.lista_distancias.pack(pady=5)
-                self.canvas.mpl_connect("button_press_event", self.on_canvas_click)
-                self.redesenhar()
+        tk.Button(self.frame, text="Adicionar Vértice", command=self.adicionar_vertice).pack(pady=5)
+        tk.Button(self.frame, text="Conectar Vértices", command=self.conectar_vertices).pack(pady=5)
+        tk.Button(self.frame, text="Escolher Vértice Inicial", command=self.escolher_vertice_inicial).pack(pady=5)
+        tk.Button(self.frame, text="Executar Dijkstra", command=self.executar_dijkstra).pack(pady=5)
+        tk.Button(self.frame, text="Mostrar Caminho", command=self.mostrar_caminho).pack(pady=5)
+        self.lista_distancias = tk.Listbox(self.frame, width=40)
+        self.lista_distancias.pack(pady=5)
+        self.canvas.mpl_connect("button_press_event", self.on_canvas_click)
+        self.root.protocol("WM_DELETE_WINDOW", self.fechar_janela)
+        self.redesenhar()
 
-            def adicionar_vertice(self):
-                nome = simpledialog.askstring("Adicionar Vértice", "Nome do vértice:")
-                if not nome:
-                    return
-                if nome in self.grafo.vertices:
-                    messagebox.showerror("Erro", "Vértice já existe!")
-                    return
-                self.grafo.adicionar_vertice(nome)
-                # Posição automática em círculo
-                n = len(self.grafo.vertices)
-                ang = 2 * 3.14159 * (n - 1) / max(n, 1)
-                x = 0.5 + 0.4 * np.cos(ang)
-                y = 0.5 + 0.4 * np.sin(ang)
-                self.grafo.posicoes[nome] = (x, y)
-                self.redesenhar()
+    def adicionar_vertice(self):
+        nome = simpledialog.askstring("Adicionar Vértice", "Nome do vértice:")
+        if not nome or nome in self.grafo.vertices:
+            messagebox.showerror("Erro", "Vértice já existe ou é inválido!")
+            return
+        self.grafo.adicionar_vertice(nome)
+        n = len(self.grafo.vertices)
+        ang = 2 * np.pi * (n - 1) / max(n, 1)
+        x = 0.5 + 0.4 * np.cos(ang)
+        y = 0.5 + 0.4 * np.sin(ang)
+        self.grafo.posicoes[nome] = (x, y)
+        self.redesenhar()
 
-            def conectar_vertices(self):
-                if len(self.grafo.vertices) < 2:
-                    messagebox.showerror("Erro", "Adicione pelo menos dois vértices.")
-                    return
-                nomes = list(self.grafo.vertices.keys())
-                origem = simpledialog.askstring("Conectar", f"Vértice de origem ({', '.join(nomes)}):")
-                if origem not in self.grafo.vertices:
-                    messagebox.showerror("Erro", "Vértice de origem inválido.")
-                    return
-                destino = simpledialog.askstring("Conectar", f"Vértice de destino ({', '.join(nomes)}):")
-                if destino not in self.grafo.vertices or destino == origem:
-                    messagebox.showerror("Erro", "Vértice de destino inválido.")
-                    return
-                peso = simpledialog.askinteger("Peso", "Peso da aresta (inteiro >= 0):", minvalue=0)
-                if peso is None:
-                    return
-                self.grafo.adicionar_aresta(origem, destino, peso)
-                self.redesenhar()
+    def conectar_vertices(self):
+        if len(self.grafo.vertices) < 2:
+            messagebox.showerror("Erro", "Adicione pelo menos dois vértices.")
+            return
+        nomes = list(self.grafo.vertices.keys())
+        origem = simpledialog.askstring("Conectar", f"Vértice de origem ({', '.join(nomes)}):")
+        if origem not in self.grafo.vertices:
+            messagebox.showerror("Erro", "Vértice de origem inválido.")
+            return
+        destino = simpledialog.askstring("Conectar", f"Vértice de destino ({', '.join(nomes)}):")
+        if destino not in self.grafo.vertices or destino == origem:
+            messagebox.showerror("Erro", "Vértice de destino inválido.")
+            return
 
-            def escolher_vertice_inicial(self):
-                nomes = list(self.grafo.vertices.keys())
-                nome = simpledialog.askstring("Vértice Inicial", f"Escolha o vértice inicial ({', '.join(nomes)}):")
-                if nome not in self.grafo.vertices:
-                    messagebox.showerror("Erro", "Vértice inválido.")
-                    return
-                self.vertice_inicial = nome
-                self.redesenhar()
+        for aresta in self.grafo.vertices[origem].arestas:
+            if aresta.destino.nome == destino:
+                messagebox.showerror("Erro", f"Já existe uma aresta de {origem} para {destino}.")
+                return
 
-            def executar_dijkstra(self):
-                if not self.vertice_inicial:
-                    messagebox.showerror("Erro", "Escolha o vértice inicial primeiro.")
-                    return
-                self.distancias, self.anteriores = self.grafo.dijkstra(self.vertice_inicial)
-                self.lista_distancias.delete(0, tk.END)
-                for v, d in self.distancias.items():
-                    self.lista_distancias.insert(tk.END, f"{self.vertice_inicial} → {v}: {d if d != float('inf') else '∞'}")
-                self.redesenhar()
+        peso = simpledialog.askinteger("Peso", "Peso da aresta (inteiro >= 0):", minvalue=0)
+        if peso is None:
+            return
+        self.grafo.adicionar_aresta(origem, destino, peso)
+        self.redesenhar()
 
-            def mostrar_caminho(self):
-                if not self.vertice_inicial:
-                    messagebox.showerror("Erro", "Escolha o vértice inicial primeiro.")
-                    return
-                nomes = list(self.grafo.vertices.keys())
-                destino = simpledialog.askstring("Destino", f"Escolha o vértice destino ({', '.join(nomes)}):")
-                if destino not in self.grafo.vertices:
-                    messagebox.showerror("Erro", "Vértice inválido.")
-                    return
-                self.vertice_destino = destino
-                self.redesenhar()
+    def escolher_vertice_inicial(self):
+        nomes = list(self.grafo.vertices.keys())
+        nome = simpledialog.askstring("Vértice Inicial", f"Escolha o vértice inicial ({', '.join(nomes)}):")
+        if nome not in self.grafo.vertices:
+            messagebox.showerror("Erro", "Vértice inválido.")
+            return
+        self.vertice_inicial = nome
+        self.redesenhar()
 
-            def on_canvas_click(self, event):
-                if event.inaxes != self.ax:
-                    return
-                for nome, (x, y) in self.grafo.posicoes.items():
-                    dx = event.xdata - x
-                    dy = event.ydata - y
-                    if dx * dx + dy * dy < 0.01:
-                        self.vertice_selecionado = nome
-                        break
-                self.redesenhar()
+    def executar_dijkstra(self):
+        if not self.vertice_inicial:
+            messagebox.showerror("Erro", "Escolha o vértice inicial primeiro.")
+            return
+        self.distancias, self.anteriores = self.grafo.dijkstra(self.vertice_inicial)
+        self.lista_distancias.delete(0, tk.END)
+        for v, d in self.distancias.items():
+            self.lista_distancias.insert(tk.END, f"{self.vertice_inicial} → {v}: {d if d != float('inf') else '∞'}")
+        self.redesenhar()
 
-            def redesenhar(self):
-                self.ax.clear()
-                # Desenhar arestas
-                for origem_nome, origem in self.grafo.vertices.items():
-                    x0, y0 = self.grafo.posicoes.get(origem_nome, (0, 0))
-                    for aresta in origem.arestas:
-                        destino_nome = aresta.destino.nome
-                        x1, y1 = self.grafo.posicoes.get(destino_nome, (0, 0))
-                        cor = "gray"
-                        largura = 1
-                        if self.vertice_inicial and self.vertice_destino:
-                            caminho = self.grafo.caminho_para(self.anteriores, self.vertice_destino)
-                            for i in range(len(caminho) - 1):
-                                if (caminho[i] == origem_nome and caminho[i+1] == destino_nome):
-                                    cor = "red"
-                                    largura = 3
-                        self.ax.annotate("",
-                            xy=(x1, y1), xytext=(x0, y0),
-                            arrowprops=dict(arrowstyle="->", color=cor, lw=largura, shrinkA=15, shrinkB=15),
-                        )
-                        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
-                        self.ax.text(mx, my, str(aresta.peso), color="blue", fontsize=10, ha="center", va="center")
-                # Desenhar vértices
-                for nome, (x, y) in self.grafo.posicoes.items():
-                    cor = "lightblue"
-                    if nome == self.vertice_inicial:
-                        cor = "green"
-                    if nome == self.vertice_destino:
-                        cor = "red"
-                    self.ax.plot(x, y, "o", markersize=20, color=cor)
-                    self.ax.text(x, y, nome, fontsize=12, ha="center", va="center", color="black")
-                self.ax.set_xlim(0, 1)
-                self.ax.set_ylim(0, 1)
-                self.ax.axis("off")
-                self.fig.tight_layout()
-                self.canvas.draw()
+    def mostrar_caminho(self):
+        if not self.vertice_inicial:
+            messagebox.showerror("Erro", "Escolha o vértice inicial primeiro.")
+            return
+        nomes = list(self.grafo.vertices.keys())
+        destino = simpledialog.askstring("Destino", f"Escolha o vértice destino ({', '.join(nomes)}):")
+        if destino not in self.grafo.vertices:
+            messagebox.showerror("Erro", "Vértice inválido.")
+            return
+        self.vertice_destino = destino
+        self.redesenhar()
 
-        # pra rodar
+    def on_canvas_click(self, event):
+        if event.inaxes != self.ax:
+            return
+        for nome, (x, y) in self.grafo.posicoes.items():
+            dx = event.xdata - x
+            dy = event.ydata - y
+            if dx * dx + dy * dy < 0.01:
+                self.vertice_selecionado = nome
+                break
+        self.redesenhar()
+
+    def redesenhar(self):
+        self.ax.clear()
+
+        for origem_nome, origem in self.grafo.vertices.items():
+            x0, y0 = self.grafo.posicoes.get(origem_nome, (0, 0))
+            for aresta in origem.arestas:
+                destino_nome = aresta.destino.nome
+                x1, y1 = self.grafo.posicoes.get(destino_nome, (0, 0))
+                cor = "gray"
+                largura = 1
+
+                if self.vertice_inicial and self.vertice_destino:
+                    caminho = self.grafo.caminho_para(self.anteriores, self.vertice_destino)
+                    for i in range(len(caminho) - 1):
+                        if caminho[i] == origem_nome and caminho[i + 1] == destino_nome:
+                            cor = "red"
+                            largura = 3
+
+                inverso_existe = any(a.destino.nome == origem_nome for a in self.grafo.vertices[destino_nome].arestas)
+                curvatura = 0.2 if inverso_existe else 0
+
+                self.ax.annotate("",
+                    xy=(x1, y1), xytext=(x0, y0),
+                    arrowprops=dict(
+                        arrowstyle="->",
+                        color=cor,
+                        lw=largura,
+                        shrinkA=15, shrinkB=15,
+                        connectionstyle=f"arc3,rad={curvatura}"
+                    )
+                )
+
+                # Texto do peso sobre a curva
+                mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+                dx, dy = x1 - x0, y1 - y0
+                normal_x, normal_y = -dy, dx
+                mod = (normal_x ** 2 + normal_y ** 2) ** 0.5
+                if mod != 0:
+                    normal_x /= mod
+                    normal_y /= mod
+                deslocamento = curvatura * 0.15
+
+                # Inverter sinal para empurrar o novo peso para baixo
+                px = mx - deslocamento * normal_x
+                py = my - deslocamento * normal_y
+
+                self.ax.text(px, py, str(aresta.peso), color="blue", fontsize=10, ha="center", va="center")
+
+        for nome, (x, y) in self.grafo.posicoes.items():
+            cor = "lightblue"
+            if nome == self.vertice_inicial:
+                cor = "green"
+            if nome == self.vertice_destino:
+                cor = "red"
+            self.ax.plot(x, y, "o", markersize=20, color=cor)
+            self.ax.text(x, y, nome, fontsize=12, ha="center", va="center", color="black")
+
+        self.ax.set_xlim(0, 1)
+        self.ax.set_ylim(0, 1)
+        self.ax.axis("off")
+        self.fig.tight_layout()
+        self.canvas.draw()
+
+    def fechar_janela(self):
+        plt.close('all')
+        self.root.destroy()
+
+# --------- Execução principal ---------
 
 if __name__ == "__main__":
-        root = tk.Tk()
-        app = GrafoApp(root)
-        root.mainloop()
+    root = tk.Tk()
+    app = GrafoApp(root)
+
+    # Encerramento correto ao fechar a janela
+    def on_closing():
+        plt.close(app.fig)  # Fecha a figura do matplotlib
+        root.destroy()
+
+    root.protocol("WM_DELETE_WINDOW", on_closing)
+    root.mainloop()

@@ -154,6 +154,7 @@ class GrafoApp:
         if not self.vertice_inicial:
             messagebox.showerror("Erro", "Escolha o vértice inicial primeiro.")
             return
+        messagebox.showinfo("Info", "Lembre-se de Executar o Dijkstra primeiro.")
         nomes = list(self.grafo.vertices.keys())
         destino = simpledialog.askstring("Destino", f"Escolha o vértice destino ({', '.join(nomes)}):")
         if destino not in self.grafo.vertices:

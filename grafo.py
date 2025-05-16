@@ -29,8 +29,6 @@ class Grafo:
             self.vertices[nome] = Vertice(nome)
 
     def adicionar_aresta(self, origem_nome, destino_nome, peso):
-        self.adicionar_vertice(origem_nome)
-        self.adicionar_vertice(destino_nome)
         origem = self.vertices[origem_nome]
         destino = self.vertices[destino_nome]
         origem.adicionar_aresta(destino, peso)
